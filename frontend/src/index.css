@@ -1,1 +1,17 @@
 @import "tailwindcss";
+/* src/index.css */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+@keyframes shimmer {
+  0% { opacity: 0.4; }
+  50% { opacity: 0.8; }
+  100% { opacity: 0.4; }
+}
+
+.skeleton {
+  animation: shimmer 1.5s infinite ease-in-out;
+}
