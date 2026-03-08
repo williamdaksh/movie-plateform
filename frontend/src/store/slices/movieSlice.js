@@ -3,13 +3,14 @@ import tmdb from '../../api/tmdb';
 
 export const fetchTrendingMovies = createAsyncThunk(
   'movies/fetchTrending',
-  async () => {
-    const response = await tmdb.get('/trending/movie/day');
-    return response.data.results;
-  }         
+  async (page = 1) => {
+    const response = await tmdb.get('/trending/movie/day', {
+      params: { page },
+    });
+    return { results: response.data.results, page };
+  }
 );
 
-// Naya — Movie detail fetch karo
 export const fetchMovieDetail = createAsyncThunk(
   'movies/fetchDetail',
   async ({ id, type }) => {
@@ -18,7 +19,6 @@ export const fetchMovieDetail = createAsyncThunk(
       tmdb.get(`/${type}/${id}/videos`),
       tmdb.get(`/${type}/${id}/credits`),
     ]);
-
     return {
       detail: detail.data,
       videos: videos.data.results,
@@ -31,9 +31,10 @@ const movieSlice = createSlice({
   name: 'movies',
   initialState: {
     trending: [],
+    page: 1,
+    hasMore: true,
     loading: false,
     error: null,
-    // Naya
     detail: null,
     videos: [],
     cast: [],
@@ -54,13 +55,21 @@ const movieSlice = createSlice({
       })
       .addCase(fetchTrendingMovies.fulfilled, (state, action) => {
         state.loading = false;
-        state.trending = action.payload;
+        const { results, page } = action.payload;
+
+        if (page === 1) {
+          state.trending = results; // pehli baar replace karo
+        } else {
+          state.trending = [...state.trending, ...results]; // baad mein add karo
+        }
+
+        state.page = page;
+        state.hasMore = results.length > 0; // aur data hai ya nahi
       })
       .addCase(fetchTrendingMovies.rejected, (state) => {
         state.loading = false;
         state.error = 'Movies load nahi hui!';
       })
-      // Detail cases
       .addCase(fetchMovieDetail.pending, (state) => {
         state.detailLoading = true;
       })
@@ -70,11 +79,9 @@ const movieSlice = createSlice({
         state.videos = action.payload.videos;
         state.cast = action.payload.cast;
       })
-      .addCase(fetchMovieDetail.rejected, (state, action) => {
-            state.detailLoading = false;
-            state.error = action.error.message;
-             console.log('Detail fetch failed:', action.error); // ← add karo
-});
+      .addCase(fetchMovieDetail.rejected, (state) => {
+        state.detailLoading = false;
+      });
   },
 });
 
