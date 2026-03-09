@@ -10,11 +10,12 @@ const generateToken = (id) => {
 };
 
 const setTokenCookie = (res, token) => {
+  const isProd = process.env.NODE_ENV === 'production';
   res.cookie('token', token, {
     httpOnly: true,
-    secure: false, // production mein true karna
-    sameSite: 'strict',
-    maxAge: 7 * 24 * 60 * 60 * 1000, // 7 din
+    secure: isProd,           // ✅ production mein true, local mein false
+    sameSite: isProd ? 'none' : 'strict', // ✅ cross-origin ke liye none
+    maxAge: 7 * 24 * 60 * 60 * 1000,
   });
 };
 
@@ -78,7 +79,12 @@ router.post('/login', async (req, res) => {
 
 // POST /api/auth/logout
 router.post('/logout', (req, res) => {
-  res.clearCookie('token');
+  const isProd = process.env.NODE_ENV === 'production';
+  res.clearCookie('token', {
+    httpOnly: true,
+    secure: isProd,
+    sameSite: isProd ? 'none' : 'strict',
+  });
   res.json({ message: 'Logout ho gaya! 👋' });
 });
 
@@ -87,20 +93,16 @@ router.get('/profile', protect, async (req, res) => {
   res.json(req.user);
 });
 
-// ✅ NEW: GET /api/auth/me — token se user verify karo
+// GET /api/auth/me
 router.get('/me', async (req, res) => {
   try {
-    // Cookie se token lo
     const token = req.cookies?.token;
 
     if (!token) {
       return res.status(401).json({ message: 'Not authenticated' });
     }
 
-    // Token verify karo
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
-
-    // User DB se fetch karo
     const user = await User.findById(decoded.id).select('-password');
 
     if (!user) {
@@ -118,7 +120,6 @@ router.get('/me', async (req, res) => {
       isAdmin: user.isAdmin,
     });
   } catch (error) {
-    // Token invalid ya expire
     res.status(401).json({ message: 'Session expire ho gayi, please login karein' });
   }
 });

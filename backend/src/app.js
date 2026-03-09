@@ -7,10 +7,22 @@ const watchHistoryRoutes = require('./routes/watchHistory.routes');
 
 const app = express();
 
+const allowedOrigins = [
+  'https://cineverse-omega-one.vercel.app', // ✅ trailing slash hata diya
+  'http://localhost:5173',                   // ✅ local dev ke liye
+];
+
 app.use(cors({
-  origin: 'https://cineverse-omega-one.vercel.app/',
+  origin: (origin, callback) => {
+    if (!origin || allowedOrigins.includes(origin)) {
+      callback(null, true);
+    } else {
+      callback(new Error('CORS not allowed'));
+    }
+  },
   credentials: true,
 }));
+
 app.use(express.json());
 app.use(cookieParser());
 
@@ -19,7 +31,7 @@ app.use('/api/favorites', favoriteRoutes);
 app.use('/api/history', watchHistoryRoutes);
 
 app.get('/', (req, res) => {
-  res.json({ message: 'Server chal raha hai! ' });
+  res.json({ message: 'Server chal raha hai!' });
 });
 
 module.exports = app;
