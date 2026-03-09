@@ -8,8 +8,8 @@ const watchHistoryRoutes = require('./routes/watchHistory.routes');
 const app = express();
 
 app.use(cors({
-  origin: 'http://localhost:5173', // frontend ka URL
-  credentials: true, // cookies allow karo
+  origin: 'https://movie-plateform.vercel.app',
+  credentials: true,
 }));
 app.use(express.json());
 app.use(cookieParser());
