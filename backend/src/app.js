@@ -8,7 +8,7 @@ const watchHistoryRoutes = require('./routes/watchHistory.routes');
 const app = express();
 
 app.use(cors({
-  origin: 'https://movie-plateform.vercel.app',
+  origin: 'https://cineverse-omega-one.vercel.app/',
   credentials: true,
 }));
 app.use(express.json());
