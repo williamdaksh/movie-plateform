@@ -8,16 +8,20 @@ const watchHistoryRoutes = require('./routes/watchHistory.routes');
 const app = express();
 
 const allowedOrigins = [
-  'https://cineverse-omega-one.vercel.app', // ✅ trailing slash hata diya
-  'http://localhost:5173',                   // ✅ local dev ke liye
+  'https://cineverse-ten-ruddy.vercel.app',  // ✅ actual URL
+  'https://cineverse-omega-one.vercel.app',  // purana URL
+  'https://cineverse.vercel.app',            // clean URL agar mile
+  'http://localhost:5173',                   // local dev
 ];
 
 app.use(cors({
   origin: (origin, callback) => {
-    if (!origin || allowedOrigins.includes(origin)) {
+    // Postman / server-to-server calls allow karo
+    if (!origin) return callback(null, true);
+    if (allowedOrigins.includes(origin)) {
       callback(null, true);
     } else {
-      callback(new Error('CORS not allowed'));
+      callback(new Error(`CORS blocked: ${origin}`));
     }
   },
   credentials: true,
