@@ -39,25 +39,46 @@ export const clearAllHistory = createAsyncThunk(
   }
 );
 
+export const deleteHistoryItem = createAsyncThunk(
+  'history/deleteOne',
+  async (id, { rejectWithValue }) => {
+    try {
+      await axios.delete(`${BASE_URL}/${id}`, { withCredentials: true });
+      return id;
+    } catch (error) {
+      return rejectWithValue(error.response.data.message);
+    }
+  }
+);
+
 const historySlice = createSlice({
   name: 'history',
-  initialState: {
-    history: [],
-    loading: false,
-    error: null,
-  },
+  initialState: { history: [], loading: false, error: null },
   reducers: {},
   extraReducers: (builder) => {
     builder
       .addCase(fetchHistory.fulfilled, (state, action) => {
-        state.history = action.payload;
+        // Backend se aaya data — deduplicate by movieId (latest rakho)
+        const seen = new Set();
+        state.history = action.payload.filter(item => {
+          if (seen.has(item.movieId)) return false;
+          seen.add(item.movieId);
+          return true;
+        });
       })
       .addCase(addHistory.fulfilled, (state, action) => {
-        // Latest pehle dikhao
-        state.history = [action.payload, ...state.history.slice(0, 19)];
+        const newItem = action.payload;
+        // Agar pehle se hai toh hata do, phir top pe add karo (upsert)
+        state.history = [
+          newItem,
+          ...state.history.filter(item => item.movieId !== newItem.movieId)
+        ].slice(0, 50);
       })
       .addCase(clearAllHistory.fulfilled, (state) => {
         state.history = [];
+      })
+      .addCase(deleteHistoryItem.fulfilled, (state, action) => {
+        state.history = state.history.filter(item => item._id !== action.payload);
       });
   },
 });

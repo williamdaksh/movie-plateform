@@ -9,7 +9,7 @@ export const signupUser = createAsyncThunk(
   async (userData, { rejectWithValue }) => {
     try {
       const res = await axios.post(`${BASE_URL}/signup`, userData, {
-        withCredentials: true, // cookie save karo
+        withCredentials: true,
       });
       return res.data;
     } catch (error) {
@@ -43,49 +43,74 @@ export const logoutUser = createAsyncThunk(
   }
 );
 
+// Page refresh par cookie se user verify karo
+export const verifyUser = createAsyncThunk(
+  'auth/verify',
+  async (_, { rejectWithValue }) => {
+    try {
+      const res = await axios.get(`${BASE_URL}/me`, {
+        withCredentials: true,
+      });
+      return res.data;
+    } catch {
+      return rejectWithValue(null);
+    }
+  }
+);
+
+// Sirf user info (token nahi) localStorage mein — UI instant load ke liye
+const savedUser = (() => {
+  try {
+    const data = localStorage.getItem('cv_user');
+    return data ? JSON.parse(data) : null;
+  } catch {
+    return null;
+  }
+})();
+
 const authSlice = createSlice({
   name: 'auth',
   initialState: {
-    user: null,
+    user: savedUser,
     loading: false,
     error: null,
   },
   reducers: {
-    clearError: (state) => {
-      state.error = null;
-    },
+    clearError: (state) => { state.error = null; },
   },
   extraReducers: (builder) => {
     builder
-      // Signup
-      .addCase(signupUser.pending, (state) => {
-        state.loading = true;
-        state.error = null;
-      })
+      .addCase(signupUser.pending, (state) => { state.loading = true; state.error = null; })
       .addCase(signupUser.fulfilled, (state, action) => {
         state.loading = false;
-        state.user = action.payload;
+        const { token, ...userWithoutToken } = action.payload; // token store nahi karo
+        state.user = userWithoutToken;
+        localStorage.setItem('cv_user', JSON.stringify(userWithoutToken));
       })
-      .addCase(signupUser.rejected, (state, action) => {
-        state.loading = false;
-        state.error = action.payload;
-      })
-      // Login
-      .addCase(loginUser.pending, (state) => {
-        state.loading = true;
-        state.error = null;
-      })
+      .addCase(signupUser.rejected, (state, action) => { state.loading = false; state.error = action.payload; })
+
+      .addCase(loginUser.pending, (state) => { state.loading = true; state.error = null; })
       .addCase(loginUser.fulfilled, (state, action) => {
         state.loading = false;
-        state.user = action.payload;
+        const { token, ...userWithoutToken } = action.payload; // token store nahi karo
+        state.user = userWithoutToken;
+        localStorage.setItem('cv_user', JSON.stringify(userWithoutToken));
       })
-      .addCase(loginUser.rejected, (state, action) => {
-        state.loading = false;
-        state.error = action.payload;
-      })
-      // Logout
+      .addCase(loginUser.rejected, (state, action) => { state.loading = false; state.error = action.payload; })
+
       .addCase(logoutUser.fulfilled, (state) => {
         state.user = null;
+        localStorage.removeItem('cv_user');
+      })
+
+      .addCase(verifyUser.fulfilled, (state, action) => {
+        const { token, ...userWithoutToken } = action.payload;
+        state.user = userWithoutToken;
+        localStorage.setItem('cv_user', JSON.stringify(userWithoutToken));
+      })
+      .addCase(verifyUser.rejected, (state) => {
+        state.user = null;
+        localStorage.removeItem('cv_user'); // cookie expire — logout
       });
   },
 });

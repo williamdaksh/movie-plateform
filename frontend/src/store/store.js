@@ -1,17 +1,20 @@
 import { configureStore } from '@reduxjs/toolkit';
-import movieReducer from './slices/movieSlice';
-import searchReducer from './slices/searchSlice';
-import authReducer from './slices/authSlice';
+import authReducer     from './slices/authSlice';
+import movieReducer    from './slices/movieSlice';
+import searchReducer   from './slices/searchSlice';
 import favoriteReducer from './slices/favoriteSlice';
-import historyReducer from './slices/historySlice';
+import historyReducer  from './slices/historySlice';
+import toastReducer    from './slices/toastSlice';
+// themeReducer removed
 
 const store = configureStore({
   reducer: {
-    movies: movieReducer,
-    search: searchReducer,
-    auth: authReducer,
+    auth:      authReducer,
+    movies:    movieReducer,
+    search:    searchReducer,
     favorites: favoriteReducer,
-    history: historyReducer,
+    history:   historyReducer,
+    toast:     toastReducer,
   },
 });
 

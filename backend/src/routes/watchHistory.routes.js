@@ -4,38 +4,28 @@ const { protect } = require('../middleware/auth.middleware');
 
 const router = express.Router();
 
-// GET /api/history — sab history lo
+// GET /api/history
 router.get('/', protect, async (req, res) => {
   try {
     const history = await WatchHistory.find({ userId: req.user._id })
-      .sort({ createdAt: -1 }) // latest pehle
-      .limit(20); // sirf 20 dikhao
+      .sort({ createdAt: -1 })
+      .limit(50);
     res.json(history);
   } catch (error) {
     res.status(500).json({ message: 'History load nahi hui!' });
   }
 });
 
-// POST /api/history — movie add karo
+// POST /api/history — upsert (same movie dobara add karo toh duplicate nahi banega)
 router.post('/', protect, async (req, res) => {
   try {
     const { movieId, title, poster, mediaType, rating } = req.body;
 
-    // Agar pehle se hai toh delete karo — duplicate nahi chahiye
-    await WatchHistory.findOneAndDelete({
-      userId: req.user._id,
-      movieId,
-    });
-
-    // Naya entry add karo
-    const history = await WatchHistory.create({
-      userId: req.user._id,
-      movieId,
-      title,
-      poster,
-      mediaType,
-      rating,
-    });
+    const history = await WatchHistory.findOneAndUpdate(
+      { userId: req.user._id, movieId },              // find
+      { title, poster, mediaType, rating, createdAt: new Date() }, // update
+      { upsert: true, new: true }                     // create if not exists
+    );
 
     res.status(201).json(history);
   } catch (error) {
@@ -43,12 +33,12 @@ router.post('/', protect, async (req, res) => {
   }
 });
 
-// DELETE /api/history/:movieId — ek entry hatao
-router.delete('/:movieId', protect, async (req, res) => {
+// DELETE /api/history/:id — single item delete (by _id)
+router.delete('/:id', protect, async (req, res) => {
   try {
     await WatchHistory.findOneAndDelete({
+      _id: req.params.id,
       userId: req.user._id,
-      movieId: req.params.movieId,
     });
     res.json({ message: 'History remove ho gayi!' });
   } catch (error) {
@@ -56,7 +46,7 @@ router.delete('/:movieId', protect, async (req, res) => {
   }
 });
 
-// DELETE /api/history — poori history clear karo
+// DELETE /api/history — poori history clear
 router.delete('/', protect, async (req, res) => {
   try {
     await WatchHistory.deleteMany({ userId: req.user._id });
